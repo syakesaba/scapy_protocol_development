@@ -37,74 +37,76 @@
 
 ---
 
-# WHAT IS SCAPY ?
-
---
-
 ## Scapyとは
 
 - Pythonで書かれたパケットツール
-    - 拡張性が非常に高い
     - 2011年初回リリース
-    - Python2/Python3
-    - Windows/Linux/OSX
+    - Python2/Python3対応
+    - Windows/Linux/OSX対応
     - 公式作者は[secdev.org]のPhillippeBiondi
     - 現在は有志が[github]にて開発継続
+    - 拡張性が非常に高い
     - 細かい事は[wikipedia]を参照
 
 [secdev.org]: http://www.secdev.org/
 [github]: https://github.com/secdev/scapy/
 [wikipedia]: https://en.wikipedia.org/wiki/Scapy
 
---
+---
 
-## Scapyの使い方
+## Scapyの使い方・インストール
 
 - 本資料では説明しない
 - Scapyを使って[GreHack16]を解けるレベルを推奨
 
 [GreHack16]: https://github.com/guedou/GreHack16_scapy-handson
 
---
+---
 
-## Scapyの特徴
-
-### 長所
+### Scapyの長所
 - Wiresharkよりも手軽なパケット解析ツール
-    - WiresharkはBPFを覚える必要がある
+    - Pythonの豊富なライブラリが使用可能
+    - 面倒な[BPF]を覚える必要がない
 - hping3よりも手軽なパケット生成ツール
-    - ASICの検証
+    - 独自プロトコル開発時の検証
+    - ルータ・スイッチのASIC制御の検証
     - ロードバランサのバランシング検証
     - openflowのフローテーブル検証
     - ファイアウォールの通信要件検証
+    - etc...
 
---
+[BPF]: http://biot.com/capstats/bpf.html
 
-## Scapyの特徴
-
-### 短所
-- Wiresharkのようなエキスパート解析機能がない
-    - 手動エキスパート解析で解決
-- sendが遅い
-    - Scapyは1pktに1socket開くので送信が遅い
-        - 解決方法あり
-- recvが遅い
-    - sniffは1pktごとにdissectorが動くので遅い
-        - 解決方法あり
-- ScapyがL5以上のプロトコルをサポートしない
-    - L7レベルで遊びたい場合は自分でプロトコルを作るしかない
-
---
-
-
-TEST3
 ---
-```sh
-export A=1;
-$A
-```
 
-END
+## Scapyの短所
+- Wiresharkのようなエキスパート解析機能がない
+- いくつかの理由で工夫無しで使用すると遅い
+    - encode/decodeが1パケット毎に実行される
+    - read/writeが1パケット毎に実行される
+    - 無駄にHookポイントが多い
+    - GILが付き纏うLL言語の宿命
+- **L5以上のプロトコルを扱うには自作が必要**
+
+---
+
+## Scapyでプロトコルを「作る」
+＝Packetクラスを継承したクラスを作る
+- 簡単な3ステップで作成可能（シンプル！）
+    1. Fieldクラスを使用したデータ構造を作成する
+    1. Packetクラスを継承したクラスを作成する
+    1. 自作Packetクラスを既存クラスにbindする
+
+---
+
+## 自作におけるご注意
+- 自作の野良モジュールは以下のフォルダに入れる決まりです。
+    - 野良モジュール: scapy/modules
+       - 使用時: load_module("modulename")
+    - 自作プロトコル: scapy/contrib
+        - 使用時: load_contrib("modulename")
+- Scapy自体はGPLv2ですがモジュールはより寛容なライセンスに出来ます。
+
 ---
 - <a href="?print-pdf">PDF</a>
 
