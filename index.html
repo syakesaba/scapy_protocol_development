@@ -186,10 +186,11 @@ class TCP(Packet):
 ---
 
 ## Packet継承クラスの実装
-- 必ず実装すべきもの
+- 必ず実装すべきもの(MUST)
     - fields_desc変数(構造化)
         - パケットが持つべきFieldとその順序の明記
-        - Fieldクラスを格納するlist型(**この順番でバイナリが並ぶ**)
+        - Fieldクラスを格納するlist型
+        - **この順番でバイナリが並ぶ**
     - Building系関数(具現化)
         - パケット から バイナリ への変換手順の明記
         - Padding・CheckSumの計算が主
@@ -199,15 +200,36 @@ class TCP(Packet):
 --
 
 ## Packet継承クラスの実装
-- 必ず実装すべきもの
+- 必ず実装すべきもの(MUST)
     - Dissecting系関数(抽象化)
         - バイナリ から パケット への変換手順の明記
-        - Wiresharkでいう「解析器(Dissector)」の実装が主
+        - Wiresharkでいう「解析器(Dissector)」
         - 最下層のレイヤのDissectionがPayloadに連鎖
     - Binding系関数(関連付け)
         - 最も重要な実装項目
-        - パケットを既存のプロトコルスタックへ紐付けする
+        - パケットを既存のプロトコルへ紐付けする
         - BuildingとDissectingをPayloadに連鎖させる
+
+--
+
+## Packet継承クラスの実装
+- できれば実装すべきもの(MAY)
+    - Misc系関数(可視化)
+        - パケットをヒューマンリーダブルにする
+
+---
+
+### fields_desc変数(構造化)
+- 変数に入れるFieldクラスはi2m()やh2i()などの状態遷移メソッドを持つのが特徴
+- 結局のところ、fields_descはちょっとリッチなgetterやsetterが付いたTLVレコードの羅列と同じである
+- m: プリミティブ(バイナリ)。machine語。
+    - b"¥x00¥x01¥x02...." ※Python2の場合はstr　※Python3の場合はbytes
+- i: 中間データ(時にプリミティブと同様) 。Python internal語。
+    - str,bytes,int,long,などなど
+- h: ヒューマンリーダブル(時に中間データと同様)。Scapy Coding語。
+    - named flag, enum,...などなど
+- repr: ヒューマンリーダブル++(時にヒューマンリーダブルと同様)。人間語。
+    - repr()時にワンダフルな感じで見せたいときに使用
 
 ---
 
