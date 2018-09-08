@@ -31,8 +31,8 @@
                          data-separator-notes="^//">
                         <textarea data-template>
 # Scapy
-## Protocol Development
-2018.09.08 [syakesaba]
+## 拡張プロトコルの作成
+2018.09 [syakesaba]
 [syakesaba]: https://syakesaba.com/
 
 ---
@@ -99,16 +99,126 @@
 
 ---
 
-## 自作におけるご注意
-- 自作の野良モジュールは以下のフォルダに入れる決まりです。
-    - 野良モジュール: scapy/modules
+## プロトコル自作諸注意
+- 自作スクリプトは以下のフォルダに入れる決まり
+    - 自作モジュール: scapy/modules
        - 使用時: load_module("modulename")
     - 自作プロトコル: scapy/contrib
-        - 使用時: load_contrib("modulename")
-- Scapy自体はGPLv2ですがモジュールはより寛容なライセンスに出来ます。
+       - 使用時: load_contrib("modulename")
+- Scapy自体は[GPLv2]
+
+[GPLv2]: https://www.gnu.org/licenses/old-licenses/gpl-2.0-faq.html
 
 ---
-- <a href="?print-pdf">PDF</a>
+
+# Scapyの構造
+- Packetクラス: [scapy.packet.Packet]
+    - IPやTCPなどプロトコルを表す
+    - Fieldクラスを格納する箱となる
+- Fieldクラス: [scapy.fields.Field]
+    - IPアドレスやTCPポート番号などデータを表す
+    - プリミティブやFieldを格納する箱となる
+
+[scapy.packet.Packet]: https://github.com/secdev/scapy/blob/master/scapy/packet.py
+[scapy.fields.Field]: https://github.com/secdev/scapy/blob/master/scapy/fields.py
+
+---
+
+## TCPプロトコルの例
+- Transmission Control Protocol [RFC793]
+
+```txt
+単位はbit。最も古いRFCのフォーマット。
+ 0                   1                   2                   3   
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Source Port          |       Destination Port        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Sequence Number                        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Acknowledgment Number                      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Data |           |U|A|P|R|S|F|                               |
+| Offset| Reserved  |R|C|S|S|Y|I|            Window             |
+|       |           |G|K|H|T|N|N|                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           Checksum            |         Urgent Pointer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Options                    |    Padding    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                             data                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+[RFC793]: https://www.ietf.org/rfc/rfc793.txt
+
+--
+
+## Scapyの場合のTCPプロトコル
+
+```python
+class TCP(Packet):
+    name = "TCP"
+    fields_desc = [ShortEnumField("sport", 20, TCP_SERVICES),
+                   ShortEnumField("dport", 80, TCP_SERVICES),
+                   IntField("seq", 0),
+                   IntField("ack", 0),
+                   BitField("dataofs", None, 4),
+                   BitField("reserved", 0, 3),
+                   FlagsField("flags", 0x2, 9, "FSRPAUECN"),
+                   ShortField("window", 8192),
+                   XShortField("chksum", None),
+                   ShortField("urgptr", 0),
+                   TCPOptionsField("options", [])]
+#ShortField=16bit
+#IntField=32bit
+#BitField=1bit
+#...*snip*
+```
+
+--
+
+## Scapyの場合のTCPプロトコル
+- Scapyでは定義済のField系クラスで表現可能
+- ScapyではTCP Paddingは後付けで生成される
+- ScapyではTCP dataはPayloadとして認識される
+
+---
+
+## Packet継承クラスの実装
+- 必ず実装すべきもの
+    - fields_desc変数(構造化)
+        - パケットが持つべきFieldとその順序の明記
+        - Fieldクラスを格納するlist型(**この順番でバイナリが並ぶ**)
+    - Building系関数(具現化)
+        - パケット から バイナリ への変換手順の明記
+        - Padding・CheckSumの計算が主
+        - 実際のバイナリ化はFieldクラスに委任
+        - 最下層のレイヤのBuildがPayloadに連鎖
+
+--
+
+## Packet継承クラスの実装
+- 必ず実装すべきもの
+    - Dissecting系関数(抽象化)
+        - バイナリ から パケット への変換手順の明記
+        - Wiresharkでいう「解析器(Dissector)」の実装が主
+        - 最下層のレイヤのDissectionがPayloadに連鎖
+    - Binding系関数(関連付け)
+        - 最も重要な実装項目
+        - パケットを既存のプロトコルスタックへ紐付けする
+        - BuildingとDissectingをPayloadに連鎖させる
+
+---
+
+# 参考・引用
+- [本資料のソース]
+- [本資料の印刷表示]
+- [Exampleパケットのソース]
+
+[Exampleパケットのソース]: https://github.com/syakesaba/scapy-syakesaba/blob/master/packet.py
+[本資料のソース]: https://github.com/syakesaba/scapy_protocol_development
+[本資料の印刷表示]: ?print-pdf
 
                         </textarea>
                 </section>
