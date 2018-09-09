@@ -100,7 +100,7 @@
 ---
 
 ## プロトコル自作諸注意
-- 自作スクリプトは以下のフォルダに入れる決まり
+- 自作物は以下のフォルダに入れる決まり
     - 自作モジュール: scapy/modules
        - 使用時: load_module("modulename")
     - 自作プロトコル: scapy/contrib
@@ -220,16 +220,74 @@ class TCP(Packet):
 ---
 
 ### fields_desc変数(構造化)
-- 変数に入れるFieldクラスはi2m()やh2i()などの状態遷移メソッドを持つのが特徴
-- 結局のところ、fields_descはちょっとリッチなgetterやsetterが付いたTLVレコードの羅列と同じである
-- m: プリミティブ(バイナリ)。machine語。
-    - b"¥x00¥x01¥x02...." ※Python2の場合はstr　※Python3の場合はbytes
-- i: 中間データ(時にプリミティブと同様) 。Python internal語。
-    - str,bytes,int,long,などなど
-- h: ヒューマンリーダブル(時に中間データと同様)。Scapy Coding語。
-    - named flag, enum,...などなど
-- repr: ヒューマンリーダブル++(時にヒューマンリーダブルと同様)。人間語。
-    - repr()時にワンダフルな感じで見せたいときに使用
+- Fieldクラスはi2m()などの状態変化関数を持つ
+    - i2m: internal to machine
+    - i2repr: internal to representation
+- m,i,h,reprはそれぞれ以下の意味合い
+    - m: バイナリデータ。machine語。
+        - b"¥x00¥x01¥x02...." ※Python2の場合はstr
+    - i: 中間データ。Python internal語。
+        - str,bytes,int,longなど
+    - h: ヒューマンリーダブルデータ。human語。
+        - named flag, enumなど
+    - repr: プリティデータ。representation語。
+        - データに解釈をもたせる。
+
+**基本、Fieldクラスは定義済のものを使うこと**
+
+---
+
+### Building系関数(具現化)
+- buildingではパケットの具現化・処理を行う
+    - send系関数実行の度にPacket.build関数が発火
+    - この時Fieldクラスは[struct.pack]を行う
+    - 同時にチェックサム計算やPadding付与を行う
+    - post_build関数でバイナリ化実行
+    - build_padding関数でパディング挿入
+    - do_build_payload関数でペイロード連鎖
+
+**ペイロードにBuildが連鎖するのはBindingの効果**
+
+[struct.pack]: https://docs.python.org/3/library/struct.html
+
+---
+
+### Dissecting系関数(抽象化)
+- dissectingではパケットの抽象化・解釈をする
+    - recv系関数実行の度にPacket.dissect関数が発火
+    - この時Fieldクラスは[struct.unpack]を行う
+    - 最下層レイヤを指定しpayloadの連鎖を行う
+        - 既定のL2レイヤはconf.l2typesを参照
+    - 同時にFCSやlengthチェックの確認などを実施
+    - extract_padding関数でパディングの分離
+    - do_dissect_payload関数でペイロードの連鎖
+
+**ペイロードにDissectが連鎖するのはBindingの効果**
+
+[struct.unpack]: https://docs.python.org/3/library/struct.html
+
+---
+
+### Binding系関数(関連付け)
+- 上位レイヤへのBuildingとDissectingの連鎖を実装
+- 複数のレイヤ関連付け方法がある
+    - bind_layers関数
+        - Scapy側の解析機構に委ねて連鎖させる方法
+    - Packet.guess_payload_class関数
+        - レイヤ側で解析と同時に連鎖させる方法
+    - Packet.payload_guess変数 (list型)
+        - 定義済の推測関数で連鎖させる方法
+    - ex: Packet.default_payload_class関数
+        - ペイロードを推測失敗した場合
+
+---
+
+### IPパケットにおける例
+- Building
+
+- Dissecting
+
+- Binding
 
 ---
 
