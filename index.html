@@ -414,8 +414,10 @@ from scapy.all import Packet
 from scapy.all import StrField
 from scapy.all import TCP
 from scapy.all import bind_layers
-class WHOIS(packet.Packet):
+
+class WHOIS(Packet):
     fields_desc = [StrField("whois_data","")]
+
 bind_layers(TCP, WHOIS, sport=43)
 bind_layers(TCP, WHOIS, dport=43)
 ```
@@ -423,6 +425,42 @@ bind_layers(TCP, WHOIS, dport=43)
 ---
 
 # 完成
+```python
+>>> from scapy.all import Packet
+>>> from scapy.all import StrField
+>>> from scapy.all import TCP
+>>> from scapy.all import bind_layers
+>>>
+>>> class WHOIS(Packet):
+...     fields_desc = [StrField("whois_data","")]
+...
+>>> bind_layers(TCP, WHOIS, sport=43)
+>>> bind_layers(TCP, WHOIS, dport=43)
+>>> sniff(offline="whois.cap").show()
+0000 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname S
+0001 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 SA
+0002 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
+0003 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname PA / WHOIS
+0004 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 A
+0005 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
+0006 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
+0007 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
+0008 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 FA
+0009 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
+0010 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
+0011 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
+0012 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname FA
+0013 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 A
+```
+
+---
+
+# あっけなさすぎる
+
+---
+
+# もう少しリッチにする
+
 
 ---
 
