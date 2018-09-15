@@ -96,6 +96,9 @@
     1. Fieldクラスを使用したデータ構造を作成する
     1. Packetクラスを継承したクラスを作成する
     1. 自作Packetクラスを既存クラスにbindする
+- [公式Documentation]
+
+[公式DOC]: https://scapy.readthedocs.io/en/latest/build_dissect.html
 
 ---
 
@@ -410,6 +413,10 @@ $ whois fc2.com
 ## WHOISプロトコル
 
 ```python
+#!/usr/bin/env python
+# encoding: utf-8
+# scapy/contrib/whois.py
+
 from scapy.all import Packet
 from scapy.all import StrField
 from scapy.all import TCP
@@ -426,31 +433,9 @@ bind_layers(TCP, WHOIS, dport=43)
 
 # 完成
 ```python
->>> from scapy.all import Packet
->>> from scapy.all import StrField
->>> from scapy.all import TCP
->>> from scapy.all import bind_layers
->>>
->>> class WHOIS(Packet):
-...     fields_desc = [StrField("whois_data","")]
-...
->>> bind_layers(TCP, WHOIS, sport=43)
->>> bind_layers(TCP, WHOIS, dport=43)
+>>> from scapy.all import *
+>>> load_contrib("whois")
 >>> sniff(offline="whois.cap").show()
-0000 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname S
-0001 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 SA
-0002 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
-0003 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname PA / WHOIS
-0004 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 A
-0005 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
-0006 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
-0007 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 PA / WHOIS
-0008 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 FA
-0009 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
-0010 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
-0011 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname A
-0012 Ether / IP / TCP 163.44.165.95:48858 > 72.13.60.74:nicname FA
-0013 Ether / IP / TCP 72.13.60.74:nicname > 163.44.165.95:48858 A
 ```
 
 ---
@@ -459,39 +444,25 @@ bind_layers(TCP, WHOIS, dport=43)
 
 ---
 
-## もう少しリッチにする
+## WHOISよりもRDAPを推奨
+- Registration Data Access Protocol
+- [RFC7480-7484,8056]にて定義
+- TCP443番,HTTPS(GET,HEAD)を使う
+- ハイパーテキストなJSON-WHOISプロトコル
+- [RDAPサーバ]はIANAが管理
+- 未対応のレジストリもある
+
+[RFC7480-7484,8056]: https://www.rfc-editor.org/search/rfc_search_detail.php?title=RDAP&pubstatus%5B%5D=Any&pub_date_type=any
+[RDAPサーバ]: https://www.iana.org/assignments/ipv4-address-space/ipv4-address-space.xhtml
 
 ---
 
-```python
-from scapy.all import Packet
-from scapy.all import StrField
-from scapy.all import TCP
-from scapy.all import bind_layers
+## 別のプロトコル
 
-class WHOISRequest(Packet):
-    fields_desc = [StrField("whois_data",""),]
-    def do_dissect(self, s):
-        return s
+---
 
-class WHOISResponse(Packet):
-    fields_desc = [StrField("whois_data",""),]
-    def do_dissect(self, s):
-        return s
-
-class WHOIS(Packet):
-    def do_dissect(self, s):
-        return s
-    def guess_payload_class(self, payload):
-        if self.dport == 43:
-            return WHOISRequest
-        elif self.sport == 43:
-            return WHOISResponse
-        return Packet.guess_payload_class(self, pyload)
-
-bind_layers(TCP, WHOIS, sport=43)
-bind_layers(TCP, WHOIS, dport=43)
-```
+# 何に仕様
+- buildとdissectがうまいこと使えるもの・・・
 
 ---
 
