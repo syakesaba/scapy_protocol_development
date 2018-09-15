@@ -459,8 +459,39 @@ bind_layers(TCP, WHOIS, dport=43)
 
 ---
 
-# もう少しリッチにする
+## もう少しリッチにする
 
+---
+
+```python
+from scapy.all import Packet
+from scapy.all import StrField
+from scapy.all import TCP
+from scapy.all import bind_layers
+
+class WHOISRequest(Packet):
+    fields_desc = [StrField("whois_data",""),]
+    def do_dissect(self, s):
+        return s
+
+class WHOISResponse(Packet):
+    fields_desc = [StrField("whois_data",""),]
+    def do_dissect(self, s):
+        return s
+
+class WHOIS(Packet):
+    def do_dissect(self, s):
+        return s
+    def guess_payload_class(self, payload):
+        if self.dport == 43:
+            return WHOISRequest
+        elif self.sport == 43:
+            return WHOISResponse
+        return Packet.guess_payload_class(self, pyload)
+
+bind_layers(TCP, WHOIS, sport=43)
+bind_layers(TCP, WHOIS, dport=43)
+```
 
 ---
 
